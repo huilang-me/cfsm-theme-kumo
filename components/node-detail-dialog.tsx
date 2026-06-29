@@ -202,6 +202,7 @@ export function NodeDetailDialog({
   const colors = chartColors(mode);
 
   const historyRows = (historyQuery.data as Record<string, unknown>[] | undefined) ?? [];
+  const isLoadingHistory = historyQuery.isValidating && historyRows.length === 0;
   const liveRecord: Record<string, unknown> | null = view ? {
     timestamp: view.server.last_updated,
     cpu: view.server.cpu,
@@ -236,7 +237,7 @@ export function NodeDetailDialog({
       .sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0));
   })();
 
-  const hasLoad = records.length > 0;
+  const hasLoad = !isLoadingHistory && records.length > 0;
 
   const num = (r: Record<string, unknown>, key: string) => Number(r[key]) || 0;
 

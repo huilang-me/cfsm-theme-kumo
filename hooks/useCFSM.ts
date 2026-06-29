@@ -168,6 +168,7 @@ export function useDashboard() {
     lastUpdated: latestTimestamp(views),
     refresh: async () => {
       try {
+        cfsm.invalidateCache("servers");
         const data = await cfsm.getServers();
         setServersData(data);
         setError(null);

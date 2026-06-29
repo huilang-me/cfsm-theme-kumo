@@ -1,5 +1,10 @@
 import { Dashboard } from "@/components/dashboard";
+import { TurnstileGate } from "@/components/turnstile-gate";
 
 export default function Page() {
-  return <Dashboard />;
+  return (
+    <TurnstileGate>
+      <Dashboard />
+    </TurnstileGate>
+  );
 }

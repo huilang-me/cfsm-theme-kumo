@@ -238,7 +238,7 @@ export function Dashboard() {
           <p className="text-kumo-subtle text-xs">
             Powered by{" "}
             <a
-              href="https://github.com/cfsm-monitor/cfsm-monitor"
+              href="https://github.com/huilang-me/CF-Server-Monitor"
               target="_blank"
               rel="noreferrer"
               className="hover:text-kumo-link underline underline-offset-2 transition-colors duration-100"
@@ -247,7 +247,7 @@ export function Dashboard() {
             </a>
             {" · "}
             <a
-              href="https://github.com/yuanhhs/komari-theme-kumo"
+              href="https://github.com/huilang-me/cfsm-theme-kumo"
               target="_blank"
               rel="noreferrer"
               className="hover:text-kumo-link underline underline-offset-2 transition-colors duration-100"

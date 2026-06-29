@@ -26,10 +26,13 @@ export function SiteHeader({
   const { t, appearance, setAppearance } = useSettings();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const adminRef = useRef<HTMLDivElement>(null);
 
   const siteTitle = cfsm.getConfigSync()?.title || "CF-Server-Monitor";
+  const apiBases = cfsm.getConfigSync()?.apiBase ?? [location.origin];
   const AppearanceIcon = appearance === "light" ? Sun : appearance === "dark" ? Moon : SunMoon;
   const toggleMode = () =>
     setAppearance(appearance === "light" ? "dark" : appearance === "dark" ? "system" : "light");
@@ -49,6 +52,15 @@ export function SiteHeader({
     document.addEventListener("pointerdown", closeOnOutside);
     return () => document.removeEventListener("pointerdown", closeOnOutside);
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (!adminOpen) return;
+    const closeOnOutside = (event: PointerEvent) => {
+      if (!adminRef.current?.contains(event.target as Node)) setAdminOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutside);
+    return () => document.removeEventListener("pointerdown", closeOnOutside);
+  }, [adminOpen]);
 
   return (
     <header className="kumo-glass-shell border-kumo-hairline bg-kumo-canvas/80 sticky top-0 z-30 border-b">
@@ -100,16 +112,34 @@ export function SiteHeader({
               onClick={() => setSettingsOpen(true)}
             />
           ) : null}
-          <Button
-            variant="ghost"
-            size="sm"
-            shape="square"
-            icon={<LogIn size={HEADER_ICON_SIZE} strokeWidth={2} />}
-            aria-label={t("login")}
-            onClick={() => {
-              window.location.href = "/admin";
-            }}
-          />
+          <div className="relative" ref={adminRef}>
+            <Button
+              variant="ghost"
+              size="sm"
+              shape="square"
+              icon={<LogIn size={HEADER_ICON_SIZE} strokeWidth={2} />}
+              aria-label={t("login")}
+              onClick={() => setAdminOpen((v) => !v)}
+            />
+            {adminOpen ? (
+              <div className="kumo-glass-popover border-kumo-line bg-kumo-base absolute top-11 right-0 z-40 w-56 rounded-lg border p-1 shadow-lg">
+                {apiBases.map((base, i) => (
+                  <a
+                    key={base}
+                    href={`${base}/#/admin`}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => setAdminOpen(false)}
+                    className="text-kumo-default hover:bg-kumo-tint flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors duration-100"
+                  >
+                    <LogIn size={14} />
+                    <span className="truncate">{apiBases.length > 1 ? `站点 ${i + 1}` : t("login")}</span>
+                    <span className="text-kumo-subtle ml-auto truncate text-xs">{new URL(base).hostname}</span>
+                  </a>
+                ))}
+              </div>
+            ) : null}
+          </div>
 
           {searchOpen ? (
             <div className="kumo-glass-popover border-kumo-line bg-kumo-base absolute top-11 right-0 z-40 w-[min(20rem,calc(100vw-2rem))] rounded-lg border p-2 shadow-lg">

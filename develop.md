@@ -64,13 +64,21 @@
 │    单站模式：GET /api/config（单次请求）
 │    多站模式：对所有 apiBase 并行 GET /api/config
 │    → 获取 turnstile_enabled、verified、is_public、authorization、version
-│    → 多站模式下如果任一站点开启 Turnstile → 显示"不支持"并停止
+│    → 多站模式下如果任一站点开启 Turnstile → 提示"检测到其中一个远程端点开启了 Turnstile，请在该站点关闭后继续使用。"并停止
 │
 ├─ ④ Turnstile 验证（如果启用且未验证）
-│    动态加载 Turnstile SDK → 渲染验证组件 → 获取 token
-│    → 用 token 重新请求 GET /api/config 获取 verified 凭证
-│    → 凭证存入 localStorage，后续请求复用（有效期 1 小时）
-│    → 验证失败 → 停止加载，显示错误
+│    首次请求 GET /api/config 携带 X-Turnstile-Verified（localStorage 中如有）
+│    → 服务端返回 verified: true → 凭证有效，跳过验证，直接进入 ⑤
+│    → 返回 verified: false → 需要验证，执行以下流程：
+│       a. 动态加载 Turnstile SDK（render=explicit 模式）
+│       b. 渲染验证组件，等待用户完成人机验证
+│       c. 回调获取 token → 写入 localStorage("turnstile_token")
+│       d. 清除请求缓存（invalidateCache）
+│       e. 再次请求 GET /api/config，携带 X-Turnstile-Token header
+│       f. 服务端验证 token，响应体返回 turnstile_verified（加密凭证）
+│       g. 将 turnstile_verified 保存到 localStorage("turnstile_verified_{hostname}")
+│       h. 删除 localStorage("turnstile_token")（一次性 token，用完即弃）
+│    → 凭证有效期 1 小时，过期后服务端返回 403，自动清除凭证并重新走验证流程
 │
 ├─ ⑤ 渲染应用框架
 │    初始化路由、主题、基础布局
