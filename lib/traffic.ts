@@ -21,7 +21,7 @@ export function parseTrafficLimit(limit: string): number {
   const match = limit.match(/^([\d.]+)\s*(B|KB|MB|GB|TB|PB)?$/i);
   if (!match) return 0;
   const value = parseFloat(match[1]);
-  const unit = (match[2] ?? "B").toUpperCase();
+  const unit = (match[2] ?? "GB").toUpperCase();
   const units: Record<string, number> = {
     B: 1,
     KB: 1024,

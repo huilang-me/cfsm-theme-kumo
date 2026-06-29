@@ -694,7 +694,7 @@ export function NodeDetailDialog({
                     />
                     <TrafficSummary
                       label={`${t("used")}`}
-                      value={`${formatBytes(trafficUsed)} · ${formatPercent(trafficPercent, 0)}`}
+                      value={`${formatBytes(trafficUsed)} · ${formatPercent(trafficPercent, 2)}`}
                       accent={trafficColor}
                     />
                     <TrafficSummary
@@ -731,15 +731,15 @@ export function NodeDetailDialog({
                     icon={<Cpu size={12} />}
                     value={String(server.cpu_cores)}
                   />
-                  <InfoRow label={t("memory")} icon={<MemoryStick size={12} />} value={formatGB(server.ram_total)} />
+                  <InfoRow label={t("memory")} icon={<MemoryStick size={12} />} value={formatGB(server.ram_total / 1024)} />
                   {server.swap_total > 0 ? (
                     <InfoRow
                       label={t("swap")}
                       icon={<ReplaceAll size={12} />}
-                      value={formatGB(server.swap_total)}
+                      value={formatGB(server.swap_total / 1024)}
                     />
                   ) : null}
-                  <InfoRow label={t("disk")} icon={<HardDrive size={12} />} value={formatGB(server.disk_total)} />
+                  <InfoRow label={t("disk")} icon={<HardDrive size={12} />} value={formatGB(server.disk_total / 1024)} />
                   {server.gpu_info ? (
                     <InfoRow label={t("gpu")} value={server.gpu_info} />
                   ) : null}

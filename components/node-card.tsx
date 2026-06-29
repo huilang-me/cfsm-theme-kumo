@@ -178,7 +178,7 @@ export function NodeCard({
                   color={trafficColor}
                   title={`${t("traffic")}: ${formatBytes(trafficUsed)} / ${formatBytes(trafficLimit)}`}
                   center={<ArrowsDownUpIcon size={15} weight="bold" color={trafficColor} />}
-                  caption={formatPercent(trafficPercent, 0)}
+                  caption={formatPercent(trafficPercent, 2)}
                 />
               ) : null}
             </div>
@@ -209,7 +209,7 @@ function OfflineFootprint({
 }) {
   return (
     <span className="text-kumo-inactive mt-1 text-xs tabular-nums">
-      {formatGB(ramTotal)} RAM · {formatGB(diskTotal)} disk
+      {formatGB(ramTotal / 1024)} RAM · {formatGB(diskTotal / 1024)} disk
     </span>
   );
 }
