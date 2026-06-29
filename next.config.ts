@@ -12,6 +12,7 @@ const isExport = process.env.BUILD_EXPORT === "true";
 
 const nextConfig: NextConfig = {
   output: isExport ? "export" : undefined,
+  assetPrefix: isExport ? "." : undefined,
   reactStrictMode: true,
   images: { unoptimized: true },
 };
