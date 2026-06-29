@@ -1,0 +1,151 @@
+name: Build theme
+
+# Auto-build on every update. Main pushes publish numbered releases.
+# The version advances as 1.0.14 -> 1.0.15 -> 1.1.0 -> ... -> 1.15.15 -> 2.0.0.
+on:
+  push:
+    branches: [main]
+    tags: ["*.*.*", "v*.*.*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Cancel an in-progress build when a newer commit lands on the same ref.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      theme-version: ${{ steps.version.outputs.version }}
+      theme-tag: ${{ steps.version.outputs.tag }}
+      should-release: ${{ steps.version.outputs.should_release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Resolve theme version
+        id: version
+        run: node scripts/resolve-ci-version.mjs >> "$GITHUB_OUTPUT"
+
+      - name: Build theme package
+        env:
+          THEME_VERSION: ${{ steps.version.outputs.version }}
+        run: npm run build:theme
+
+      - name: Upload theme zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: komari-theme-kumo
+          path: komari-theme-kumo.zip
+          if-no-files-found: error
+
+  auto-release:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build.outputs.should-release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download theme zip
+        uses: actions/download-artifact@v4
+        with:
+          name: komari-theme-kumo
+
+      - name: Generate release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.theme-tag }}
+          THEME_VERSION: ${{ needs.build.outputs.theme-version }}
+        run: node scripts/generate-release-notes.mjs release-notes.md
+
+      - name: Publish numbered release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.theme-tag }}
+          THEME_VERSION: ${{ needs.build.outputs.theme-version }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG}" \
+            --method PATCH \
+            --field "sha=${GITHUB_SHA}" \
+            --field "force=true" \
+          || gh api "repos/${GITHUB_REPOSITORY}/git/refs" \
+            --method POST \
+            --field "ref=refs/tags/${RELEASE_TAG}" \
+            --field "sha=${GITHUB_SHA}"
+
+          gh release create "${RELEASE_TAG}" komari-theme-kumo.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "${RELEASE_TAG}" \
+            --notes-file release-notes.md \
+            --target "$GITHUB_SHA" \
+          || {
+            gh release edit "${RELEASE_TAG}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "${RELEASE_TAG}" \
+              --notes-file release-notes.md
+            gh release upload "${RELEASE_TAG}" komari-theme-kumo.zip --repo "$GITHUB_REPOSITORY" --clobber
+          }
+
+  version-release:
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && needs.build.outputs.should-release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download theme zip
+        uses: actions/download-artifact@v4
+        with:
+          name: komari-theme-kumo
+
+      - name: Generate release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          THEME_VERSION: ${{ needs.build.outputs.theme-version }}
+        run: node scripts/generate-release-notes.mjs release-notes.md
+
+      - name: Publish version release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" komari-theme-kumo.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" --notes-file release-notes.md \
+          || {
+            gh release edit "$GITHUB_REF_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$GITHUB_REF_NAME" \
+              --notes-file release-notes.md
+            gh release upload "$GITHUB_REF_NAME" komari-theme-kumo.zip --repo "$GITHUB_REPOSITORY" --clobber
+          }

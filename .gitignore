@@ -1,0 +1,25 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# theme build output
+/theme/
+/*.zip
+
+# preview screenshots (keep only the packaged theme preview image)
+/.preview/*
+!/.preview/preview.png
+
+# misc
+.DS_Store
+*.pem
+.cert/
+.env*.local
+*.tsbuildinfo
+next-env.d.ts
+
+
+public/config.json
