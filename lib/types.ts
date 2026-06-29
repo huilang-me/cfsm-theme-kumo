@@ -98,7 +98,7 @@ export interface ServersResponse {
 export type HistoryResponse = Record<string, unknown>[];
 
 export interface WsMessage {
-  type: "hello" | "ping" | "pong" | "update" | "batchUpdate";
+  type: "hello" | "ping" | "pong" | "update" | "batchUpdate" | "subscribe";
   ts?: number;
   subscribed?: string;
   serverId?: string;

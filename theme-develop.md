@@ -300,7 +300,7 @@ const { columns, rows } = await res.json();
 **Request**
 
 ```
-GET /api/ws?subscribe=<all|serverId>&ids=<id1,id2,...>
+GET /api/ws?subscribe=<all|serverId>
 Headers: Upgrade: websocket, Connection: Upgrade
 ```
 
@@ -309,23 +309,32 @@ Headers: Upgrade: websocket, Connection: Upgrade
 | 参数 | 必填 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `subscribe` | 否 | `all` | `all` 订阅所有服务器，`<serverId>` 只订阅指定服务器 |
-| `ids` | **是**（`subscribe=all` 时） | （空） | 逗号分隔的服务器 ID 列表，仅 `subscribe=all` 时生效。传入后只接收列表中服务器的更新。未传入时不返回任何更新 |
+
+**连接后订阅（subscribe=all）**：
+
+当 `subscribe=all` 时，Durable Object 默认不推送任何服务器更新。前端必须在连接成功后发送 `subscribe` 消息告知需要接收哪些服务器的更新：
+
+```json
+{ "type": "subscribe", "scope": "all", "ids": ["id1", "id2", "id3"] }
+```
 
 **过滤机制**：
 
-- `subscribe=all` + 传入 `ids`：仅接收 ID 在列表中的服务器更新
-- `subscribe=all` + 未传 `ids`：**不返回任何更新**
-- `subscribe=<serverId>`：始终只接收该服务器更新，`ids` 参数无效
+- `subscribe=all` + 发送 `subscribe` 消息且携带 `ids`：仅接收 ID 在列表中的服务器更新
+- `subscribe=all` + 未发送 `subscribe` 消息：**不返回任何更新**
+- `subscribe=<serverId>`：始终只接收该服务器更新，无需发送 `subscribe` 消息
 
 **多 apiBase 注意事项**：
 
-当配置了多个 `apiBase` 时，前端会为每个 apiBase 创建独立的 WebSocket 连接。每个连接的 `ids` 参数应只包含该 apiBase 返回的服务器 ID，而非全部服务器 ID。每个 Worker/DO 只知道自己的服务器，传入不属于它的 ID 不会产生任何效果。
+当配置了多个 `apiBase` 时，前端会为每个 apiBase 创建独立的 WebSocket 连接。每个连接的 `subscribe` 消息中的 `ids` 应只包含该 apiBase 返回的服务器 ID，而非全部服务器 ID。每个 Worker/DO 只知道自己的服务器，传入不属于它的 ID 不会产生任何效果。
 
 **推荐流程**：
 
 1. 调用 `GET /api/servers` 获取服务器列表（已按登录状态过滤隐藏服务器）
 2. 提取返回的 `servers[].id` 数组
-3. 连接 WebSocket 时将 ID 列表传入 `ids` 参数：`?subscribe=all&ids=id1,id2,id3`
+3. 连接 WebSocket：`?subscribe=all`
+4. 连接成功后发送订阅消息：`{ type: "subscribe", scope: "all", ids: ["id1", "id2", "id3"] }`
+5. 重连后重新发送 `subscribe` 消息恢复订阅范围
 
 **推送策略**：
 
@@ -351,10 +360,16 @@ Headers: Upgrade: websocket, Connection: Upgrade
 const { servers } = await (await fetch('/api/servers')).json();
 const ids = servers.map(s => s.id);
 
-// 2. 连接 WebSocket，只接收这些服务器的更新
+// 2. 连接 WebSocket
 const ws = new WebSocket(
-  `wss://status.example.com/api/ws?subscribe=all&ids=${encodeURIComponent(ids.join(','))}`
+  `wss://status.example.com/api/ws?subscribe=all`
 );
+
+// 3. 连接成功后发送订阅消息
+ws.onopen = () => {
+  ws.send(JSON.stringify({ type: 'subscribe', scope: 'all', ids }));
+};
+
 ws.onmessage = (ev) => {
   const msg = JSON.parse(ev.data);
   if (msg.type === 'batchUpdate') {

@@ -185,9 +185,13 @@ export const cfsm = {
     onMessage: (msg: WsMessage) => void, onError?: (ev: Event) => void): WebSocket {
     const base = getApiBases()[apiBaseIndex] || location.origin;
     const wsBase = base.replace(/^http/, "ws");
-    let url = `${wsBase}/api/ws?subscribe=${encodeURIComponent(subscribe)}`;
-    if (subscribe === "all" && ids.length > 0) url += `&ids=${encodeURIComponent(ids.join(","))}`;
+    const url = `${wsBase}/api/ws?subscribe=${encodeURIComponent(subscribe)}`;
     const ws = new WebSocket(url);
+    if (subscribe === "all") {
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: "subscribe", scope: "all", ids }));
+      };
+    }
     ws.onmessage = (ev) => { try { onMessage(JSON.parse(ev.data) as WsMessage); } catch {} };
     ws.onerror = onError ?? (() => {});
     return ws;

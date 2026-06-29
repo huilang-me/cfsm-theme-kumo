@@ -118,7 +118,7 @@
 │    在线判定：last_updated 距今 < 5 分钟
 │
 ├─ ④ 建立 WebSocket 实时连接
-│    订阅模式：subscribe=all&ids=<所有服务器ID>
+│    订阅模式：subscribe=all，连接后发送 subscribe 消息携带服务器 ID
 │    多站模式：为每个 apiBase 创建独立连接，每个只传该后端的 ID
 │
 ├─ ⑤ 启动定时器
@@ -437,7 +437,8 @@ WebSocket 收到 `batchUpdate` 消息后，数据**不是立即应用**，而是
 
 ```
 首页（subscribe=all）：
-  → 连接 wss://<wsBase>/api/ws?subscribe=all&ids=<id1,id2,...>
+  → 连接 wss://<wsBase>/api/ws?subscribe=all
+  → onopen 发送 { type: "subscribe", scope: "all", ids: [...] }
   → 收到 batchUpdate → 进入回放缓冲（见 3.3）
   → 多站模式：为每个 apiBase 创建独立连接
 
