@@ -78,20 +78,11 @@ if (!existsSync(join(OUT, "index.html"))) {
 const apiBase = process.env.API_BASE;
 const title = process.env.TITLE;
 const backgroundImage = process.env.BACKGROUND_IMAGE;
-if (apiBase || title || backgroundImage) {
-  const config = {};
-  if (apiBase) config.apiBase = apiBase.split(",").map((s) => s.trim());
-  if (title) config.title = title;
-  if (backgroundImage) config.backgroundImage = backgroundImage;
-  writeFileSync(join(OUT, "config.json"), JSON.stringify(config, null, 2) + "\n");
-  log("generated config.json from environment variables");
-} else {
-  // No env vars — copy public/config.json if it exists
-  const src = p("public", "config.json");
-  if (existsSync(src)) {
-    writeFileSync(join(OUT, "config.json"), readFileSync(src));
-    log("copied public/config.json to out/");
-  }
-}
+const config = {};
+if (apiBase) config.apiBase = apiBase.split(",").map((s) => s.trim());
+if (title) config.title = title;
+if (backgroundImage) config.backgroundImage = backgroundImage;
+writeFileSync(join(OUT, "config.json"), JSON.stringify(config, null, 2) + "\n");
+log("generated config.json");
 
 log("done → out/");
