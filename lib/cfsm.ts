@@ -12,7 +12,7 @@ let configPromise: Promise<{ apiBase: string[]; title: string; backgroundImage: 
 export function loadConfig() {
   if (config) return Promise.resolve(config);
   if (!configPromise) {
-    configPromise = fetch("/config.json", { cache: "no-cache", credentials: "omit" })
+    configPromise = fetch("./config.json", { cache: "no-cache", credentials: "omit" })
       .then((r) => r.json())
       .then((d) => { config = d; return d; });
   }

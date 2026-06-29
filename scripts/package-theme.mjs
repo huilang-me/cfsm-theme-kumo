@@ -1,12 +1,14 @@
 /**
- * Static export with dev-only route removal.
- * Route handlers can't be part of a static export, so we temporarily
- * remove them, build, then restore.
+ * Static export with dev-only route removal and config generation.
  *
- * Environment variables (all optional, override public/config.json):
+ * Environment variables (all optional):
  *   API_BASE          — comma-separated backend URLs
  *   TITLE             — site title
  *   BACKGROUND_IMAGE  — background image URL
+ *
+ * If any env var is set, config.json is generated from them and placed
+ * directly in out/ so it's available in the deployed site regardless of
+ * what public/config.json contains (which is gitignored for local dev).
  */
 import { execSync } from "node:child_process";
 import {
@@ -25,7 +27,6 @@ const DEV_ROUTES = [
   p("app", "api", "rpc2", "route.ts"),
   p("app", "api", "admin", "theme", "settings", "route.ts"),
 ];
-const CONFIG_PATH = p("public", "config.json");
 const OUT = p("out");
 const NEXT = p(".next");
 
@@ -40,23 +41,6 @@ for (const route of DEV_ROUTES) {
 }
 if (stashedRoutes.length > 0) {
   log(`stashed ${stashedRoutes.length} dev route handler(s)`);
-}
-
-// Generate config.json from env vars if any are set
-let originalConfig = null;
-const apiBase = process.env.API_BASE;
-const title = process.env.TITLE;
-const backgroundImage = process.env.BACKGROUND_IMAGE;
-if (apiBase || title || backgroundImage) {
-  if (existsSync(CONFIG_PATH)) {
-    originalConfig = readFileSync(CONFIG_PATH, "utf8");
-  }
-  const config = originalConfig ? JSON.parse(originalConfig) : {};
-  if (apiBase) config.apiBase = apiBase.split(",").map((s) => s.trim());
-  if (title) config.title = title;
-  if (backgroundImage) config.backgroundImage = backgroundImage;
-  writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + "\n");
-  log("generated config.json from environment variables");
 }
 
 function runExport() {
@@ -84,13 +68,30 @@ try {
   if (stashedRoutes.length > 0) {
     log("restored dev route handler(s)");
   }
-  if (originalConfig !== null) {
-    writeFileSync(CONFIG_PATH, originalConfig);
-    log("restored original config.json");
-  }
 }
 
 if (!existsSync(join(OUT, "index.html"))) {
   throw new Error("static export failed: out/index.html not found");
 }
+
+// Generate config.json from env vars into out/ directly
+const apiBase = process.env.API_BASE;
+const title = process.env.TITLE;
+const backgroundImage = process.env.BACKGROUND_IMAGE;
+if (apiBase || title || backgroundImage) {
+  const config = {};
+  if (apiBase) config.apiBase = apiBase.split(",").map((s) => s.trim());
+  if (title) config.title = title;
+  if (backgroundImage) config.backgroundImage = backgroundImage;
+  writeFileSync(join(OUT, "config.json"), JSON.stringify(config, null, 2) + "\n");
+  log("generated config.json from environment variables");
+} else {
+  // No env vars — copy public/config.json if it exists
+  const src = p("public", "config.json");
+  if (existsSync(src)) {
+    writeFileSync(join(OUT, "config.json"), readFileSync(src));
+    log("copied public/config.json to out/");
+  }
+}
+
 log("done → out/");
